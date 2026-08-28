@@ -25,7 +25,7 @@ public class MainCanvas extends JPanel implements Runnable {
     private static final int FILE_BUFFER_SIZE = 64 * 1024;
 
     private Thread runner;
-    private boolean ativo = true;
+    private boolean isLoopActive = true;
     // private int paintcounter = 0; -- AINDA NÃO UTILIZADA
 
     private BufferedImage imageBuffer;
@@ -107,12 +107,12 @@ public class MainCanvas extends JPanel implements Runnable {
 
         this.imgtmp = loadImage("res/images/gato.jpg");
 
-        imageBuffer = new BufferedImage(640, 480, BufferedImage.TYPE_4BYTE_ABGR);
+        this.imageBuffer = new BufferedImage(640, 480, BufferedImage.TYPE_4BYTE_ABGR);
         // imageBuffer.getGraphics().drawImage(imgtmp, 0, 0, null);
 
-        bufferDeVideo = ((DataBufferByte) imageBuffer.getRaster().getDataBuffer()).getData();
+        this.bufferDeVideo = ((DataBufferByte) this.imageBuffer.getRaster().getDataBuffer()).getData();
 
-        System.out.println("Buffer SIZE " + bufferDeVideo.length);
+        System.out.println("Buffer SIZE " + this.bufferDeVideo.length);
 
         // File f = new File("t1.bmp");
         // try {
@@ -301,7 +301,7 @@ public class MainCanvas extends JPanel implements Runnable {
             for (int xi = 0; xi < iw; xi++) {
                 int pixi = yi * iw * 4 + xi * 4;
                 int pixb = (yi + y) * WIDTH * 4 + (xi + x) * 4;
-                bufferDeVideo[pixb] = imgBuffer[pixi];
+                this.bufferDeVideo[pixb] = imgBuffer[pixi];
 
                 // BW
                 // int soma = (imgBuffer[pixi+1]&0xff) + (imgBuffer[pixi+2]&0xff) +
@@ -335,9 +335,9 @@ public class MainCanvas extends JPanel implements Runnable {
                 g = Math.min(255, g);
                 r = Math.min(255, r);
 
-                bufferDeVideo[pixb + 1] = (byte) (b & 0xff);
-                bufferDeVideo[pixb + 2] = (byte) (g & 0xff);
-                bufferDeVideo[pixb + 3] = (byte) (r & 0xff);
+                this.bufferDeVideo[pixb + 1] = (byte) (b & 0xff);
+                this.bufferDeVideo[pixb + 2] = (byte) (g & 0xff);
+                this.bufferDeVideo[pixb + 3] = (byte) (r & 0xff);
             }
         }
     }
@@ -345,8 +345,8 @@ public class MainCanvas extends JPanel implements Runnable {
     @Override
     public void paint(Graphics g) {
 
-        for (int i = 0; i < bufferDeVideo.length; i++) {
-            bufferDeVideo[i] = 0;
+        for (int i = 0; i < this.bufferDeVideo.length; i++) {
+            this.bufferDeVideo[i] = 0;
         }
 
         // for(int j = 0; j < H;j++) {
@@ -410,7 +410,7 @@ public class MainCanvas extends JPanel implements Runnable {
         // g.setColor(Color.black);
         // g.drawLine(0, 0, 640, 480);
 
-        g.drawImage(imageBuffer, 0, 0, null);
+        g.drawImage(this.imageBuffer, 0, 0, null);
 
         // g.setColor(Color.BLUE);
         // g.drawLine(clickX, clickY, mouseX, mouseY);
@@ -424,10 +424,10 @@ public class MainCanvas extends JPanel implements Runnable {
 
         for (int i = 0; i < w; i++) {
 
-            bufferDeVideo[pospix] = (byte) 255;
-            bufferDeVideo[pospix + 1] = (byte) 0;
-            bufferDeVideo[pospix + 2] = (byte) 0;
-            bufferDeVideo[pospix + 3] = (byte) 0;
+            this.bufferDeVideo[pospix] = (byte) 255;
+            this.bufferDeVideo[pospix + 1] = (byte) 0;
+            this.bufferDeVideo[pospix + 2] = (byte) 0;
+            this.bufferDeVideo[pospix + 3] = (byte) 0;
             pospix += 4;
         }
     }
@@ -437,10 +437,10 @@ public class MainCanvas extends JPanel implements Runnable {
 
         for (int i = 0; i < h; i++) {
 
-            bufferDeVideo[pospix] = (byte) 255;
-            bufferDeVideo[pospix + 1] = (byte) 0;
-            bufferDeVideo[pospix + 2] = (byte) 0;
-            bufferDeVideo[pospix + 3] = (byte) 255;
+            this.bufferDeVideo[pospix] = (byte) 255;
+            this.bufferDeVideo[pospix + 1] = (byte) 0;
+            this.bufferDeVideo[pospix + 2] = (byte) 0;
+            this.bufferDeVideo[pospix + 3] = (byte) 255;
             pospix += (HEIGHT * 4);
         }
     }
@@ -448,25 +448,25 @@ public class MainCanvas extends JPanel implements Runnable {
     public void desenhaPixel(int x, int y, int r, int g, int b) {
         int pospix = y * (WIDTH * 4) + x * 4;
 
-        bufferDeVideo[pospix] = (byte) 255;
-        bufferDeVideo[pospix + 1] = (byte) (b & 0xff);
-        bufferDeVideo[pospix + 2] = (byte) (g & 0xff);
-        bufferDeVideo[pospix + 3] = (byte) (r & 0xff);
+        this.bufferDeVideo[pospix] = (byte) 255;
+        this.bufferDeVideo[pospix + 1] = (byte) (b & 0xff);
+        this.bufferDeVideo[pospix + 2] = (byte) (g & 0xff);
+        this.bufferDeVideo[pospix + 3] = (byte) (r & 0xff);
     }
 
     public void start() {
-        runner = new Thread(this);
-        runner.start();
+        this.runner = new Thread(this);
+        this.runner.start();
     }
 
     int timer = 0;
 
     public void simulaMundo(long diftime) {
-
         float difS = diftime / 1000.0f;
         float vel = 50;
 
         timer += diftime;
+
         if (timer >= 1000) {
             timer = 0;
             filtroR = rand.nextFloat();
@@ -505,7 +505,7 @@ public class MainCanvas extends JPanel implements Runnable {
         // System.out.println(segundo);
         // System.exit(0);
         long diftime = 0;
-        while (ativo) {
+        while (this.isLoopActive) {
             simulaMundo(diftime);
             paintImmediately(0, 0, 640, 480); // ignorar sugestão do repaint - não podemos entrar na fila de eventos do
                                               // SWING
@@ -534,7 +534,9 @@ public class MainCanvas extends JPanel implements Runnable {
         try {
             imgtmp = ImageIO.read(new File(filename));
 
-            BufferedImage imgout = new BufferedImage(imgtmp.getWidth(), imgtmp.getHeight(),
+            BufferedImage imgout = new BufferedImage(
+                    imgtmp.getWidth(),
+                    imgtmp.getHeight(),
                     BufferedImage.TYPE_4BYTE_ABGR);
 
             imgout.getGraphics().drawImage(imgtmp, 0, 0, null);
