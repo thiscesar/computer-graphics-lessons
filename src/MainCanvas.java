@@ -441,7 +441,7 @@ public class MainCanvas extends JPanel implements Runnable {
             this.bufferDeVideo[pospix + 1] = (byte) 0;
             this.bufferDeVideo[pospix + 2] = (byte) 0;
             this.bufferDeVideo[pospix + 3] = (byte) 255;
-            pospix += (HEIGHT * 4);
+            pospix += (WIDTH * 4);
         }
     }
 
