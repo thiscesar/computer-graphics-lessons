@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
@@ -18,8 +19,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class MainCanvas extends JPanel implements Runnable {
-    public static final int WIDTH = 640;
-    public static final int HEIGHT = 480;
+
 
     // porque 6400?
     private static final int FILE_BUFFER_SIZE = 64 * 1024;
@@ -28,8 +28,7 @@ public class MainCanvas extends JPanel implements Runnable {
     private boolean isLoopActive = true;
     // private int paintcounter = 0; -- AINDA NÃO UTILIZADA
 
-    private BufferedImage imageBuffer;
-    private byte bufferDeVideo[];
+    private final Framebuffer framebuffer;
 
     private Random rand = new Random();
 
@@ -45,10 +44,6 @@ public class MainCanvas extends JPanel implements Runnable {
     private int clickY = 0;
     private int mouseX = 0;
     private int mouseY = 0;
-
-    private int pixelSize = 0;
-    private int Largura = 0;
-    private int Altura = 0;
 
     private BufferedImage imgtmp = null;
 
@@ -69,7 +64,7 @@ public class MainCanvas extends JPanel implements Runnable {
     private float q2x = 10;
     private float q2y = 200;
 
-    public MainCanvas() {
+    public MainCanvas(int largura, int altura) {
         File f = new File("imgbmp.bmp");
         try {
             FileInputStream fin = new FileInputStream(f);
@@ -90,13 +85,8 @@ public class MainCanvas extends JPanel implements Runnable {
             e1.printStackTrace();
         }
 
-        setSize(640, 480);
+        setPreferredSize(new Dimension(largura, altura));
         setFocusable(true);
-
-        Largura = 640;
-        Altura = 480;
-
-        pixelSize = 640 * 480;
 
         // try {
         // imgtmp = ImageIO.read(getClass().getResource("fundo.jpg"));
@@ -107,12 +97,7 @@ public class MainCanvas extends JPanel implements Runnable {
 
         this.imgtmp = loadImage("res/images/gato.jpg");
 
-        this.imageBuffer = new BufferedImage(640, 480, BufferedImage.TYPE_4BYTE_ABGR);
-        // imageBuffer.getGraphics().drawImage(imgtmp, 0, 0, null);
-
-        this.bufferDeVideo = ((DataBufferByte) this.imageBuffer.getRaster().getDataBuffer()).getData();
-
-        System.out.println("Buffer SIZE " + this.bufferDeVideo.length);
+        this.framebuffer = new Framebuffer(largura, altura);
 
         // File f = new File("t1.bmp");
         // try {
@@ -300,8 +285,6 @@ public class MainCanvas extends JPanel implements Runnable {
         for (int yi = 0; yi < ih; yi++) {
             for (int xi = 0; xi < iw; xi++) {
                 int pixi = yi * iw * 4 + xi * 4;
-                int pixb = (yi + y) * WIDTH * 4 + (xi + x) * 4;
-                this.bufferDeVideo[pixb] = imgBuffer[pixi];
 
                 // BW
                 // int soma = (imgBuffer[pixi+1]&0xff) + (imgBuffer[pixi+2]&0xff) +
@@ -335,9 +318,7 @@ public class MainCanvas extends JPanel implements Runnable {
                 g = Math.min(255, g);
                 r = Math.min(255, r);
 
-                this.bufferDeVideo[pixb + 1] = (byte) (b & 0xff);
-                this.bufferDeVideo[pixb + 2] = (byte) (g & 0xff);
-                this.bufferDeVideo[pixb + 3] = (byte) (r & 0xff);
+                framebuffer.desenhaPixel(xi + x, yi + y, r, g, b);
             }
         }
     }
@@ -345,9 +326,7 @@ public class MainCanvas extends JPanel implements Runnable {
     @Override
     public void paint(Graphics g) {
 
-        for (int i = 0; i < this.bufferDeVideo.length; i++) {
-            this.bufferDeVideo[i] = 0;
-        }
+        framebuffer.limpar();
 
         // for(int j = 0; j < H;j++) {
         // for(int i = 0; i < W;i++) {
@@ -370,9 +349,11 @@ public class MainCanvas extends JPanel implements Runnable {
 
         drawImageToBuffer(imgtmp, (int) posx, (int) posy, filtroR, filtroG, filtroB);
 
-        desenhaLinhaHorizontal((int) 10, (int) 100, 400);
+        desenhaLinhaHorizontal(10, 100, 400, 0, 0, 0);
 
-        desenhaLinhaVertical((int) 10, (int) 20, 200);
+        desenhaLinhaVertical(10, 20, 200, 255, 0, 0);
+
+        desenhaLinha(250, 250, 600, 450, 0, 160, 0);
 
         // desenhaLinhaVertical(300,200,200);
 
@@ -406,11 +387,11 @@ public class MainCanvas extends JPanel implements Runnable {
         g.setFont(this.font);
 
         g.setColor(Color.white);
-        g.fillRect(0, 0, 640, 480);
+        g.fillRect(0, 0, getWidth(), getHeight());
         // g.setColor(Color.black);
         // g.drawLine(0, 0, 640, 480);
 
-        g.drawImage(this.imageBuffer, 0, 0, null);
+        g.drawImage(framebuffer.imagem(), 0, 0, null);
 
         // g.setColor(Color.BLUE);
         // g.drawLine(clickX, clickY, mouseX, mouseY);
@@ -419,39 +400,67 @@ public class MainCanvas extends JPanel implements Runnable {
         g.drawString("FPS " + fps + " mouse: " + mouseX + "," + mouseY, 10, 25);
     }
 
-    public void desenhaLinhaHorizontal(int x, int y, int w) {
-        int pospix = y * (WIDTH * 4) + x * 4;
-
+    public void desenhaLinhaHorizontal(int x, int y, int w, int r, int g, int b) {
         for (int i = 0; i < w; i++) {
-
-            this.bufferDeVideo[pospix] = (byte) 255;
-            this.bufferDeVideo[pospix + 1] = (byte) 0;
-            this.bufferDeVideo[pospix + 2] = (byte) 0;
-            this.bufferDeVideo[pospix + 3] = (byte) 0;
-            pospix += 4;
+            framebuffer.desenhaPixel(x + i, y, r, g, b);
         }
     }
 
-    public void desenhaLinhaVertical(int x, int y, int h) {
-        int pospix = y * (WIDTH * 4) + x * 4;
-
+    public void desenhaLinhaVertical(int x, int y, int h, int r, int g, int b) {
         for (int i = 0; i < h; i++) {
+            framebuffer.desenhaPixel(x, y + i, r, g, b);
+        }
+    }
 
-            this.bufferDeVideo[pospix] = (byte) 255;
-            this.bufferDeVideo[pospix + 1] = (byte) 0;
-            this.bufferDeVideo[pospix + 2] = (byte) 0;
-            this.bufferDeVideo[pospix + 3] = (byte) 255;
-            pospix += (WIDTH * 4);
+    // Algoritmo de Bresenham (1962): desenha a linha usando SO aritmetica inteira,
+    // sem divisao e sem ponto flutuante. A ideia central e nunca calcular y = m*x + c;
+    // em vez disso, mantem-se um acumulador de erro e a cada passo pergunta-se apenas
+    // "o desvio acumulado ja passou de meio pixel?".
+    public void desenhaLinha(int x0, int y0, int x1, int y1, int r, int g, int b) {
+        // Distancias em cada eixo, sempre positivas: o sinal vai para sx/sy.
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+
+        // Direcao de cada eixo (+1 ou -1). Separar "quanto" (dx/dy) de "para que lado"
+        // (sx/sy) e o que faz o mesmo laco cobrir os 8 octantes sem caso especial.
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+
+        // O acumulador. Pense nele como o saldo de um cabo de guerra entre os dois eixos:
+        // andar em x "gasta" dy do saldo, andar em y "devolve" dx.
+        int erro = dx - dy;
+
+        int x = x0;
+        int y = y0;
+
+        while (true) {
+            framebuffer.desenhaPixel(x, y, r, g, b);
+
+            // Parada depois de desenhar, para que os dois extremos entrem na linha.
+            if (x == x1 && y == y1) {
+                break;
+            }
+
+            // Dobrar o erro equivale a comparar com "meio passo" sem usar fracao:
+            // em vez de testar erro > 0.5, testa-se 2*erro > 1. Isto mantem tudo inteiro.
+            int e2 = 2 * erro;
+
+            // Os dois if sao INDEPENDENTES (nao if/else) de proposito: cada eixo decide
+            // sozinho se avanca. Numa linha rasa so o primeiro dispara; numa ingreme so o
+            // segundo; a 45 graus os dois disparam no mesmo passo, gerando a diagonal exata.
+            if (e2 > -dy) {
+                erro -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                erro += dx;
+                y += sy;
+            }
         }
     }
 
     public void desenhaPixel(int x, int y, int r, int g, int b) {
-        int pospix = y * (WIDTH * 4) + x * 4;
-
-        this.bufferDeVideo[pospix] = (byte) 255;
-        this.bufferDeVideo[pospix + 1] = (byte) (b & 0xff);
-        this.bufferDeVideo[pospix + 2] = (byte) (g & 0xff);
-        this.bufferDeVideo[pospix + 3] = (byte) (r & 0xff);
+        framebuffer.desenhaPixel(x, y, r, g, b);
     }
 
     public void start() {
@@ -507,7 +516,7 @@ public class MainCanvas extends JPanel implements Runnable {
         long diftime = 0;
         while (this.isLoopActive) {
             simulaMundo(diftime);
-            paintImmediately(0, 0, 640, 480); // ignorar sugestão do repaint - não podemos entrar na fila de eventos do
+            paintImmediately(0, 0, getWidth(), getHeight()); // ignorar sugestão do repaint - não podemos entrar na fila de eventos do
                                               // SWING
             // paintcounter+=100; -- AINDA NÃO UTILIZADA
 

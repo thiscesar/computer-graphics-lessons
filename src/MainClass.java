@@ -5,13 +5,12 @@ import javax.swing.JFrame;
 
 public class MainClass {
 	public static void main(String[] args) {
-		MainCanvas meuCanvas = new MainCanvas();
+		MainCanvas meuCanvas = new MainCanvas(640, 480);
 
 		JFrame f = new JFrame();
-        // talvez separar e não chumbar as dimensões do Canvsa com a janela.
-		f.setSize(MainCanvas.WIDTH, MainCanvas.HEIGHT);
-		f.setVisible(true);
 		f.getContentPane().add(meuCanvas);
+		f.pack();
+		f.setVisible(true);
 		
 		f.addWindowListener(new WindowAdapter() {
 		    @Override
